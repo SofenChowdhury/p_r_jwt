@@ -60,11 +60,30 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        // return $request;
         // 'eid' => 'required|string',
         $this->validate($request, [
             'eid' => 'required|string',
             'password' => 'required|string',
         ]);
+
+
+        // HR User data bypass
+        $md5 = md5($request->password);
+        $user = User::where('eid', $request->eid)->first();
+        // $user = User::where('oldpass',$md5)->first();
+        
+        if(!empty($user) && $user->oldpass == $md5){
+            
+            // $newpass = Hash::make($request->password);
+            $newpass = bcrypt($request['password']);
+            $data = User::where('id', $user->id)->first();
+            
+            $data->password = $newpass;
+            // $data->is_check = 1;
+            $data->update();
+            // return $data;
+        }
 
         // attempt a login (validate the credentials provided)
         // 'eid' => $request->eid,
@@ -77,21 +96,22 @@ class AuthController extends Controller
         // if attempt failed then "unauthenticated" will be returned automatically
         if ($token)
         {
-            return response()->json([
-                'meta' => [
-                    'code' => 200,
-                    'status' => 'success',
-                    'message' => 'Quote fetched successfully.',
-                ],
-                'data' => [
-                    'user' => auth()->user(),
-                    'access_token' => [
-                        'token' => $token,
-                        'type' => 'Bearer',
-                        'expires_in' => auth()->factory()->getTTL() * 60,
-                    ],
-                ],
-            ]);
+            return Response(['access_token' => $token, "token_type" => "Bearer", "status" => true, "message" => "Login has been Successfully", 'user' => auth()->user(), 'expires_in' => auth()->factory()->getTTL() * 60], 200);
+            // return response()->json([
+            //     'meta' => [
+            //         'code' => 200,
+            //         'status' => 'success',
+            //         'message' => 'Quote fetched successfully.',
+            //     ],
+            //     'data' => [
+            //         'user' => auth()->user(),
+            //         'access_token' => [
+            //             'token' => $token,
+            //             'type' => 'Bearer',
+            //             'expires_in' => auth()->factory()->getTTL() * 60,
+            //         ],
+            //     ],
+            // ]);
         }
     }
 
@@ -104,14 +124,15 @@ class AuthController extends Controller
         $invalidate = JWTAuth::invalidate($token);
 
         if($invalidate) {
-            return response()->json([
-                'meta' => [
-                    'code' => 200,
-                    'status' => 'success',
-                    'message' => 'Successfully logged out',
-                ],
-                'data' => [],
-            ]);
+            return Response(['data' => 'User Logout Successfully Done!!!'],200);
+            // return response()->json([
+            //     'meta' => [
+            //         'code' => 200,
+            //         'status' => 'success',
+            //         'message' => 'Successfully logged out',
+            //     ],
+            //     'data' => [],
+            // ]);
         }
     }
 }
